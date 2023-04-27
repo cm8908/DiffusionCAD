@@ -14,6 +14,10 @@ class ConfigAE(object):
 
         # init hyperparameters and parse from command-line
         parser, args = self.parse()
+        
+        # args.proj_dir = 'debugs'
+        # args.gpu_ids = '1'
+        # args.keep_seq_len = True
 
         # set as attributes
         print("----Experiment Configuration-----")
@@ -24,7 +28,7 @@ class ConfigAE(object):
         # experiment paths
         self.exp_dir = os.path.join(self.proj_dir, self.exp_name)
         if phase == "train" and args.cont is not True and os.path.exists(self.exp_dir):
-            response = input('Experiment log/model already exists, overwrite? (y/n) ')
+            response = input(f'Experiment {self.exp_dir} already exists, overwrite? (y/n) ')
             if response != 'y':
                 exit()
             shutil.rmtree(self.exp_dir)
@@ -95,6 +99,8 @@ class ConfigAE(object):
         parser.add_argument('--val_frequency', type=int, default=10, help="run validation every x iterations")
         parser.add_argument('--vis_frequency', type=int, default=2000, help="visualize output every x iterations")
         parser.add_argument('--augment', action='store_true', help="use random data augmentation")
+
+        parser.add_argument('--keep_seq_len', action='store_true', help="keep z variable's length as original sequence length. (1 if set False)")
         
         if not self.is_train:
             parser.add_argument('-m', '--mode', type=str, choices=['rec', 'enc', 'dec'])

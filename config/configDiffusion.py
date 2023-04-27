@@ -1,17 +1,20 @@
 import os
-from utils import ensure_dirs
 import argparse
 import json
 import shutil
+import torch.nn as nn
+from cadlib.macro import *
+from utils import ensure_dirs
 
-
-class ConfigLGAN(object):
+class ConfigDiffusion:
     def __init__(self):
         self.set_configuration()
 
         # parse command line arguments
         parser, args = self.parse()
 
+        assert 'seq_len = saved z seq length'
+        
         # set as attributes
         print("----Experiment Configuration-----")
         for k, v in args.__dict__.items():
@@ -20,7 +23,7 @@ class ConfigLGAN(object):
 
         # experiment paths
         self.data_root = os.path.join(args.proj_dir, args.exp_name, "results/all_zs_ckpt{}.h5".format(args.ae_ckpt))
-        self.exp_dir = os.path.join(args.proj_dir, args.exp_name, "lgan_{}".format(args.ae_ckpt))
+        self.exp_dir = os.path.join(args.proj_dir, args.exp_name, "diffusion{}".format(args.ae_ckpt))
         self.log_dir = os.path.join(self.exp_dir, 'log')
         self.model_dir = os.path.join(self.exp_dir, 'model')
 
@@ -42,21 +45,24 @@ class ConfigLGAN(object):
 
     def set_configuration(self):
         # network configuration
-        self.n_dim = 64
         self.h_dim = 512
         self.z_dim = 256
+        self.ff_dim = 1024  # for Transformer encoder
 
-        # WGAN-gp configuration
+        self.num_enc_layers = 6
+        self.num_heads = 8
+        self.norm_type = 'layernorm'
+        self.dropout_rate = 0.1
+        
         self.beta1 = 0.5
-        self.critic_iters = 5
-        self.gp_lambda = 10
+        
 
     def parse(self):
         """initiaize argument parser. Define default hyperparameters and collect from command-line arguments."""
         parser = argparse.ArgumentParser()
         parser.add_argument('--proj_dir', type=str, default="proj_log",
                             help="path to project folder where models and logs will be saved")
-        parser.add_argument('--exp_name', type=str, required=True, help="name of this experiment")
+        parser.add_argument('--exp_name', type=str, required=True, help="name of this experiment")  
         parser.add_argument('--ae_ckpt', type=str, required=True, help="ckpt for autoencoder")
         parser.add_argument('--continue', dest='cont', action='store_true', help="continue training from checkpoint")
         parser.add_argument('--ckpt', type=str, default='latest', required=False, help="desired checkpoint to restore")
@@ -71,6 +77,11 @@ class ConfigLGAN(object):
         parser.add_argument('--n_iters', type=int, default=200000, help="total number of iterations to train")
         parser.add_argument('--save_frequency', type=int, default=100000, help="save models every x iterations")
         parser.add_argument('--lr', type=float, default=2e-4, help="initial learning rate")
+
+        parser.add_argument('--seq_len', type=int, default=1, help="length of z variable")
+        parser.add_argument('--timesteps', type=int, default=2000, help='diffusion time steps')
+        parser.add_argument('--loss_type', choices=['l1', 'l2'], default='l1', help='DDPM loss type')
+        parser.add_argument('--beta_schedule', choices=['linear', 'cosine'], default='cosine', help='beta scheduling')
 
         args = parser.parse_args()
         return parser, args

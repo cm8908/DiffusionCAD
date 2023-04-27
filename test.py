@@ -86,7 +86,9 @@ def encode(cfg):
         for i, data in enumerate(pbar):
             with torch.no_grad():
                 z = tr_agent.encode(data, is_batch=True)
-                z = z.detach().cpu().numpy()[:, 0, :]
+                z = z.detach().cpu().numpy()
+                if not cfg.keep_seq_len:
+                    z = z[:, 0, :]
                 all_zs.append(z)
         all_zs = np.concatenate(all_zs, axis=0)
         print(all_zs.shape)

@@ -26,13 +26,20 @@ class CADEmbedding(nn.Module):
         self.pos_encoding = PositionalEncodingLUT(cfg.d_model, max_len=seq_len+2)
 
     def forward(self, commands, args, groups=None):
+        """
+        commands: (S, N)
+        args: (S, N, N_ARGS)
+        groups: (S, N)
+        """
         S, N = commands.shape
 
+        #  (S, N, D) + (S, N, N_ARGS*64=>D)
         src = self.command_embed(commands.long()) + \
               self.embed_fcn(self.arg_embed((args + 1).long()).view(S, N, -1))  # shift due to -1 PAD_VAL
+              # (S, N, D)
 
         if self.use_group:
-            src = src + self.group_embed(groups.long())
+            src = src + self.group_embed(groups.long())  # (S, N, D)
 
         src = self.pos_encoding(src)
 
@@ -60,6 +67,7 @@ class Encoder(nn.Module):
         super().__init__()
 
         seq_len = cfg.max_total_len
+        self.keep_seq_len = cfg.keep_seq_len
         self.use_group = cfg.use_group_emb
         self.embedding = CADEmbedding(cfg, seq_len, use_group=self.use_group)
 
@@ -69,13 +77,17 @@ class Encoder(nn.Module):
 
     def forward(self, commands, args):
         padding_mask, key_padding_mask = _get_padding_mask(commands, seq_dim=0), _get_key_padding_mask(commands, seq_dim=0)
-        group_mask = _get_group_mask(commands, seq_dim=0) if self.use_group else None
+        #  (S, N, 1), (N, S)
+        group_mask = _get_group_mask(commands, seq_dim=0) if self.use_group else None  # (S, N)
 
-        src = self.embedding(commands, args, group_mask)
+        src = self.embedding(commands, args, group_mask)  # (S, N, D)
 
-        memory = self.encoder(src, mask=None, src_key_padding_mask=key_padding_mask)
+        memory = self.encoder(src, mask=None, src_key_padding_mask=key_padding_mask)  # (S, N, dim_z) where dim_z = D = 256
 
-        z = (memory * padding_mask).sum(dim=0, keepdim=True) / padding_mask.sum(dim=0, keepdim=True) # (1, N, dim_z)
+        if not self.keep_seq_len:
+            z = (memory * padding_mask).sum(dim=0, keepdim=True) / padding_mask.sum(dim=0, keepdim=True) # (1, N, dim_z) average pooled
+        else:
+            z = memory * padding_mask  # (S, N, dim_z)
         return z
 
 
@@ -114,8 +126,9 @@ class Decoder(nn.Module):
         self.fcn = FCN(cfg.d_model, cfg.n_commands, cfg.n_args, args_dim)
 
     def forward(self, z):
-        src = self.embedding(z)
-        out = self.decoder(src, z, tgt_mask=None, tgt_key_padding_mask=None)
+        # z: (1 | S, N, D)
+        src = self.embedding(z)  # (S, N, D)
+        out = self.decoder(src, z, tgt_mask=None, tgt_key_padding_mask=None)  # (S, N, D)
 
         command_logits, args_logits = self.fcn(out)
 
@@ -148,11 +161,16 @@ class CADTransformer(nn.Module):
 
     def forward(self, commands_enc, args_enc,
                 z=None, return_tgt=True, encode_mode=False):
+        """
+        N = batch size, S = sequence length, N_ARGS = number of params (=16)
+        commands_enc: (N, S)
+        args_enc: (N, S, N_ARGS)
+        """
         commands_enc_, args_enc_ = _make_seq_first(commands_enc, args_enc)  # Possibly None, None
-
+        # (S, N), (S, N, N_ARGS)
         if z is None:
             z = self.encoder(commands_enc_, args_enc_)
-            z = self.bottleneck(z)
+            z = self.bottleneck(z)  # (1, N, D)
         else:
             z = _make_seq_first(z)
 
