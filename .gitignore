@@ -1,2 +1,4 @@
 *.pyc
 data/
+proj_log/
+debugs/
