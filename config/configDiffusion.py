@@ -44,6 +44,8 @@ class ConfigDiffusion:
                 json.dump(self.__dict__, f, indent=2)
 
     def set_configuration(self):
+        self.model_type = 'transformer_encoder'
+
         # network configuration
         self.h_dim = 512
         self.z_dim = 256

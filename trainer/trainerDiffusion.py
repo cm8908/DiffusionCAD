@@ -6,7 +6,7 @@ import torch.optim as optim
 from tqdm import tqdm
 from .base import BaseTrainer
 from model.GaussianDiffusion1D import GaussianDiffusion1D
-from model.noise_predictor import NoisePredictor
+from model.noise_predictor import NoisePredictor, NoisePredictorMLP
 from utils import cycle
 
 
@@ -16,6 +16,8 @@ class TrainerGaussianDiffusion1D(BaseTrainer):
         self.batch_size = cfg.batch_size
         self.n_iters = cfg.n_iters
         self.save_frequency = cfg.save_frequency
+        
+        self.z_dim = cfg.z_dim
 
         # build diffusion
         self.build_net(cfg)
@@ -24,7 +26,13 @@ class TrainerGaussianDiffusion1D(BaseTrainer):
         self.set_optimizer(cfg)
 
     def build_net(self, cfg):
-        denoise_model = NoisePredictor(cfg)
+        if cfg.model_type == 'transformer_encoder':
+            denoise_model = NoisePredictor(cfg)
+        elif cfg.model_type == 'mlp':
+            denoise_model = NoisePredictorMLP(cfg)
+        else:
+            raise NotImplementedError()
+        
         self.net = GaussianDiffusion1D(denoise_model, cfg).cuda()
 
     def eval(self):
@@ -85,38 +93,23 @@ class TrainerGaussianDiffusion1D(BaseTrainer):
             if self.clock.step % self.save_frequency == 0:
                 self.save_ckpt()
             
-    def generate(self, n_samples, return_score=False):
+    def generate(self, n_samples):
         """generate samples"""  # TODO:
         self.eval()
 
         chunk_num = n_samples // self.batch_size
         generated_z = []
-        z_scores = []
         for i in range(chunk_num):
-            # noise = torch.randn(self.batch_size, self.n_dim).cuda()
             fake = self.net.sample(self.batch_size)  # TODO:
-            # with torch.no_grad():
-            #     fake = self.netG(noise)
-            #     G_score = self.netD(fake)
-            # G_score = G_score.detach().cpu().numpy()
             fake = fake.detach().cpu().numpy()
             generated_z.append(fake)
-            z_scores.append(G_score)
             print("chunk {} finished.".format(i))
 
         remains = n_samples - self.batch_size * chunk_num
-        noise = torch.randn(remains, self.n_dim).cuda()
         with torch.no_grad():
-            fake = self.netG(noise)
-            G_score = self.netD(fake)
-            G_score = G_score.detach().cpu().numpy()
+            fake = self.net.sample(self.batch_size)
             fake = fake.detach().cpu().numpy()
         generated_z.append(fake)
-        z_scores.append(G_score)
 
         generated_z = np.concatenate(generated_z, axis=0)
-        z_scores = np.concatenate(z_scores, axis=0)
-        if return_score:
-            return generated_z, z_scores
-        else:
-            return generated_z
+        return generated_z
