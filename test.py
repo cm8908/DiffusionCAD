@@ -60,8 +60,8 @@ def reconstruct(cfg):
 
             save_path = os.path.join(cfg.outputs, '{}_vec.h5'.format(data_id))
             with h5py.File(save_path, 'w') as fp:
-                fp.create_dataset('out_vec', data=out_vec[:seq_len], dtype=np.int)
-                fp.create_dataset('gt_vec', data=gt_vec[j][:seq_len], dtype=np.int)
+                fp.create_dataset('out_vec', data=out_vec[:seq_len], dtype=int)
+                fp.create_dataset('gt_vec', data=gt_vec[j][:seq_len], dtype=int)
 
 
 def encode(cfg):
@@ -113,7 +113,9 @@ def decode(cfg):
     # decode
     for i in range(0, len(zs), cfg.batch_size):
         with torch.no_grad():
-            batch_z = torch.tensor(zs[i:i+cfg.batch_size], dtype=torch.float32).unsqueeze(1)
+            batch_z = torch.tensor(zs[i:i+cfg.batch_size], dtype=torch.float32)
+            if len(batch_z.shape) == 2:
+                batch_z.unsqueeze_(1)
             batch_z = batch_z.cuda()
             outputs = tr_agent.decode(batch_z)
             batch_out_vec = tr_agent.logits2vec(outputs)
@@ -125,7 +127,7 @@ def decode(cfg):
 
             save_path = os.path.join(save_dir, '{}.h5'.format(i + j))
             with h5py.File(save_path, 'w') as fp:
-                fp.create_dataset('out_vec', data=out_vec[:seq_len], dtype=np.int)
+                fp.create_dataset('out_vec', data=out_vec[:seq_len], dtype=int)
 
 
 if __name__ == '__main__':

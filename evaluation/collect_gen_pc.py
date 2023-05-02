@@ -28,7 +28,7 @@ def process_one(path):
 
     # print("[processing] {}".format(data_id))
     with h5py.File(path, 'r') as fp:
-        out_vec = fp["out_vec"][:].astype(np.float)
+        out_vec = fp["out_vec"][:].astype(float)
 
     try:
         shape = vec2CADsolid(out_vec)
