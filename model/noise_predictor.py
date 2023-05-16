@@ -103,7 +103,7 @@ class NoisePredictor(nn.Module):
             time (Tensor): (N,)
 
         Returns:
-            _type_: _description_
+            noise (Tensor): (N, L, Z)
         """
         emb = self.time_emb(timestep_embedding(time, self.h_dim))  # (N, H)
         
@@ -122,24 +122,24 @@ class NoisePredictor(nn.Module):
 class NoisePredictorMLP(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        z_dim = cfg.z_dim
-        h_dim = cfg.h_dim
+        self.z_dim = cfg.z_dim
+        self.h_dim = cfg.h_dim
         
         self.net = nn.Sequential(
-            nn.Linear(z_dim, h_dim),
+            nn.Linear(self.z_dim, self.h_dim),
             SiLU(),
-            nn.Linear(h_dim, h_dim),
+            nn.Linear(self.h_dim, self.h_dim),
             SiLU(),
-            nn.Linear(h_dim, h_dim),
+            nn.Linear(self.h_dim, self.h_dim),
             SiLU(),
-            nn.Linear(h_dim, z_dim)
+            nn.Linear(self.h_dim, self.z_dim)
         )
         
-        time_dim = h_dim * 4
+        time_dim = self.h_dim * 4
         self.time_emb = nn.Sequential(
-            nn.Linear(h_dim, time_dim),
+            nn.Linear(self.h_dim, time_dim),
             SiLU(),
-            nn.Linear(time_dim, h_dim)
+            nn.Linear(time_dim, self.z_dim)
         )
     def forward(self, seq, time):
         time_emb = self.time_emb(timestep_embedding(time, self.h_dim))  # (N, H)
