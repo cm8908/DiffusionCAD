@@ -162,7 +162,7 @@ class CADTransformer(nn.Module):
     def forward(self, commands_enc, args_enc,
                 z=None, return_tgt=True, encode_mode=False):
         """
-        N = batch size, S = sequence length, N_ARGS = number of params (=16)
+        N = batch size, S = sequence length (= 1 if pooled 60 otherwise), N_ARGS = number of params (=16)
         commands_enc: (N, S)
         args_enc: (N, S, N_ARGS)
         """
@@ -180,8 +180,8 @@ class CADTransformer(nn.Module):
         out_logits = _make_batch_first(*out_logits)
 
         res = {
-            "command_logits": out_logits[0],
-            "args_logits": out_logits[1]
+            "command_logits": out_logits[0],  # (N, S, n_commands)
+            "args_logits": out_logits[1]  # (N, S, n_args, args_dim)
         }
 
         if return_tgt:

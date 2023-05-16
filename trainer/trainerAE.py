@@ -48,7 +48,7 @@ class TrainerAE(BaseTrainer):
         """network outputs (logits) to final CAD vector"""
         out_command = torch.argmax(torch.softmax(outputs['command_logits'], dim=-1), dim=-1)  # (N, S)
         out_args = torch.argmax(torch.softmax(outputs['args_logits'], dim=-1), dim=-1) - 1  # (N, S, N_ARGS)
-        if refill_pad: # fill all unused element to -1
+        if refill_pad: # fill all unused command element to -1
             mask = ~torch.tensor(CMD_ARGS_MASK).bool().cuda()[out_command.long()]
             out_args[mask] = -1
 
