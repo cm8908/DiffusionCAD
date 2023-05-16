@@ -23,7 +23,11 @@ class ConfigDiffusion:
 
         # experiment paths
         self.data_root = os.path.join(args.proj_dir, args.exp_name, "results/all_zs_ckpt{}.h5".format(args.ae_ckpt))
-        self.exp_dir = os.path.join(args.proj_dir, args.exp_name, "diffusion{}".format(args.ae_ckpt))
+        if args.exp_tag is None:
+            diffusion_dir = "mlp-diffusion" if args.model_type == 'mlp' else "diffusion"
+        else:
+            diffusion_dir = args.exp_tag
+        self.exp_dir = os.path.join(args.proj_dir, args.exp_name, diffusion_dir+"{}".format(args.ae_ckpt))
         self.log_dir = os.path.join(self.exp_dir, 'log')
         self.model_dir = os.path.join(self.exp_dir, 'model')
 
@@ -44,7 +48,7 @@ class ConfigDiffusion:
                 json.dump(self.__dict__, f, indent=2)
 
     def set_configuration(self):
-        self.model_type = 'transformer_encoder'
+        # self.model_type = 'transformer_encoder'  # ['transformer_encoder', 'mlp']
 
         # network configuration
         self.h_dim = 512
@@ -65,6 +69,7 @@ class ConfigDiffusion:
         parser.add_argument('--proj_dir', type=str, default="proj_log",
                             help="path to project folder where models and logs will be saved")
         parser.add_argument('--exp_name', type=str, required=True, help="name of this experiment")  
+        parser.add_argument('--exp_tag', type=str, default=None, help="name tag for result directory")  
         parser.add_argument('--ae_ckpt', type=str, required=True, help="ckpt for autoencoder")
         parser.add_argument('--continue', dest='cont', action='store_true', help="continue training from checkpoint")
         parser.add_argument('--ckpt', type=str, default='latest', required=False, help="desired checkpoint to restore")
@@ -73,6 +78,7 @@ class ConfigDiffusion:
         parser.add_argument('-g', '--gpu_ids', type=str, default="0",
                             help="gpu to use, e.g. 0  0,1,2. CPU not supported.")
 
+        parser.add_argument('--model_type', type=str, default='transformer_encoder', choices=['transformer_encoder', 'mlp'])
         parser.add_argument('--batch_size', type=int, default=256, help="batch size")
         parser.add_argument('--num_workers', type=int, default=8, help="number of workers for data loading")
 
