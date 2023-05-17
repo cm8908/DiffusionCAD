@@ -43,16 +43,49 @@ class TrainerAE(BaseTrainer):
         """decode given latent vectors"""
         outputs = self.net(None, None, z=z, return_tgt=False)
         return outputs
+    
+    def set_idx_on_mask(self, mask, seq_idx, indices, batch_idx=None):
+        # if unset=True, set only indices other than `indices` to 1
+        if batch_idx is None:
+            batch_idx = range(mask.size(0))
+        for idx_to_set in indices:
+            for i in range(len(ALL_COMMANDS)):
+                if i == idx_to_set:
+                    mask[batch_idx, seq_idx, i] += 1
+        return mask
+        
 
     def logits2vec(self, outputs, refill_pad=True, to_numpy=True):
+        # TODO: repeatedly masking
+        command_logits = outputs['command_logits']  # (N, S, N_CMD)
+        args_logits = outputs['args_logits']  # (N, S, N_ARGS, ARGS_DIM)
+        command_logits_mask = command_logits.new_zeros(*command_logits.size())
+        prev_command_i = None
+        for i in range(command_logits.size(1)):
+            command_i = command_logits[:, i].softmax(-1).argmax(-1)  # (N,)
+            if i == 0:
+                command_logits_mask = self.set_idx_on_mask(command_logits_mask, i, [SOL_IDX])
+            elif i == 1:
+                command_logits_mask = self.set_idx_on_mask(command_logits_mask, i, [LINE_IDX, ARC_IDX, CIRCLE_IDX])
+            elif i == 2:
+                command_logits_mask = self.set_idx_on_mask(command_logits_mask, i, [LINE_IDX, ARC_IDX, CIRCLE_IDX, EXT_IDX])
+            elif i > 2:
+                batch_idx = torch.nonzero(prev_command_i == EXT_IDX)
+                command_logits_mask = self.set_idx_on_mask(command_logits_mask, i, [LINE_IDX, ARC_IDX, CIRCLE_IDX, EOS_IDX], batch_idx)
+                batch_idx = torch.nonzero(prev_command_i != EXT_IDX)
+                command_logits_mask = self.set_idx_on_mask(command_logits_mask, i, [LINE_IDX, ARC_IDX, CIRCLE_IDX, EXT_IDX], batch_idx)
+            prev_command_i = command_i  # (N,)
+        
+        command_logits *= command_logits_mask
+
         """network outputs (logits) to final CAD vector"""
-        out_command = torch.argmax(torch.softmax(outputs['command_logits'], dim=-1), dim=-1)  # (N, S)
-        out_args = torch.argmax(torch.softmax(outputs['args_logits'], dim=-1), dim=-1) - 1  # (N, S, N_ARGS)
+        out_command = torch.argmax(torch.softmax(command_logits, dim=-1), dim=-1)  # (N, S)
+        out_args = torch.argmax(torch.softmax(args_logits, dim=-1), dim=-1) - 1  # (N, S, N_ARGS)
         if refill_pad: # fill all unused command element to -1
             mask = ~torch.tensor(CMD_ARGS_MASK).bool().cuda()[out_command.long()]
             out_args[mask] = -1
 
-        out_cad_vec = torch.cat([out_command.unsqueeze(-1), out_args], dim=-1)
+        out_cad_vec = torch.cat([out_command.unsqueeze(-1), out_args], dim=-1)  # (N, S, N_ARGS+1)
         if to_numpy:
             out_cad_vec = out_cad_vec.detach().cpu().numpy()
         return out_cad_vec
