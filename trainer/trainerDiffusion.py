@@ -7,6 +7,7 @@ from tqdm import tqdm
 from .base import BaseTrainer
 from model.GaussianDiffusion1D import GaussianDiffusion1D
 from model.noise_predictor import NoisePredictor, NoisePredictorMLP
+from model.unet1d import UNetModel
 from utils import cycle
 
 
@@ -30,6 +31,8 @@ class TrainerGaussianDiffusion1D(BaseTrainer):
             denoise_model = NoisePredictor(cfg)
         elif cfg.model_type == 'mlp':
             denoise_model = NoisePredictorMLP(cfg)
+        elif cfg.model_type == 'unet':
+            denoise_model = UNetModel(cfg)
         else:
             raise NotImplementedError()
         
