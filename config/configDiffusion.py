@@ -8,12 +8,19 @@ from utils import ensure_dirs
 
 class ConfigDiffusion:
     def __init__(self):
-        self.set_configuration()
-
         # parse command line arguments
         parser, args = self.parse()
+        self.model_type = args.model_type
+
+        self.set_configuration()
 
         assert 'seq_len = saved z seq length'
+        config_path = os.path.join(args.proj_dir, args.exp_name, 'config.txt')
+        ae_configs = json.load(open(config_path))
+        if 'keep_seq_len' in ae_configs.keys() and ae_configs['keep_seq_len'] == True:
+            self.seq_len = MAX_TOTAL_LEN
+        else:
+            self.seq_len = 1
         
         # set as attributes
         print("----Experiment Configuration-----")
@@ -24,7 +31,12 @@ class ConfigDiffusion:
         # experiment paths
         self.data_root = os.path.join(args.proj_dir, args.exp_name, "results/all_zs_ckpt{}.h5".format(args.ae_ckpt))
         if args.exp_tag is None:
-            diffusion_dir = "mlp-diffusion" if args.model_type == 'mlp' else "diffusion"
+            if args.model_type == 'mlp':
+                diffusion_dir = "mlp-diffusion"
+            elif args.model_type == 'unet':
+                diffusion_dir = 'unet-diffusion'
+            else:
+                diffusion_dir = "diffusion"
         else:
             diffusion_dir = args.exp_tag
         self.exp_dir = os.path.join(args.proj_dir, args.exp_name, diffusion_dir+"{}".format(args.ae_ckpt))
@@ -56,9 +68,21 @@ class ConfigDiffusion:
         self.ff_dim = 1024  # for Transformer encoder
 
         self.num_enc_layers = 6
-        self.num_heads = 8
+        self.num_heads = 4
+        if self.model_type != 'unet':
+            self.num_heads *= 2
         self.norm_type = 'layernorm'
         self.dropout_rate = 0.1
+
+        # Unet configuration
+        self.num_res_blocks = 2
+        self.attention_resolutions = '16,8'
+        self.num_classes = None
+        self.use_checkpoint = False
+        self.num_heads_upsample = -1  # same as num_heads
+        self.use_scale_shift_norm = True
+        self.training_mode = 'emb'
+        self.vocab_size = None
         
         self.beta1 = 0.5
         
@@ -78,7 +102,7 @@ class ConfigDiffusion:
         parser.add_argument('-g', '--gpu_ids', type=str, default="0",
                             help="gpu to use, e.g. 0  0,1,2. CPU not supported.")
 
-        parser.add_argument('--model_type', type=str, default='transformer_encoder', choices=['transformer_encoder', 'mlp'])
+        parser.add_argument('--model_type', type=str, default='transformer_encoder', choices=['transformer_encoder', 'mlp', 'unet'])
         parser.add_argument('--batch_size', type=int, default=256, help="batch size")
         parser.add_argument('--num_workers', type=int, default=8, help="number of workers for data loading")
 
