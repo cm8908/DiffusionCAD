@@ -43,7 +43,7 @@ def process_one(data_id):
         os.makedirs(truck_dir)
 
     with h5py.File(save_path, 'w') as fp:
-        fp.create_dataset("vec", data=cad_vec, dtype=np.int)
+        fp.create_dataset("vec", data=cad_vec, dtype=int)
 
 
 with open(RECORD_FILE, "r") as fp:

@@ -45,10 +45,10 @@ for path in out_paths:
     try:
         if args.form == "h5":
             with h5py.File(path, 'r') as fp:
-                out_vec = fp["out_vec"][:].astype(np.float)
+                out_vec = fp["out_vec"][:].astype(float)
                 out_shape = vec2CADsolid(out_vec)
                 if args.with_gt:
-                    gt_vec = fp["gt_vec"][:].astype(np.float)
+                    gt_vec = fp["gt_vec"][:].astype(float)
                     gt_shape = vec2CADsolid(gt_vec)
         else:
             with open(path, 'r') as fp:

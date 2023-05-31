@@ -42,8 +42,8 @@ def normalize_pc(points):
 
 def process_one(path):
     with h5py.File(path, 'r') as fp:
-        out_vec = fp["out_vec"][:].astype(np.float)
-        # gt_vec = fp["gt_vec"][:].astype(np.float)
+        out_vec = fp["out_vec"][:].astype(float)
+        # gt_vec = fp["gt_vec"][:].astype(float)
 
     data_id = path.split('/')[-1].split('.')[0][:8]
     truck_id = data_id[:4]

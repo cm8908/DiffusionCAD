@@ -58,10 +58,10 @@ class CoordSystem(object):
     def numericalize(self, n=256):
         """NOTE: shall only be called after normalization"""
         # assert np.max(self.origin) <= 1.0 and np.min(self.origin) >= -1.0 # TODO: origin can be out-of-bound!
-        self.origin = ((self.origin + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(np.int)
+        self.origin = ((self.origin + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(int)
         tmp = np.array([self._theta, self._phi, self._gamma])
         self._theta, self._phi, self._gamma = ((tmp / np.pi + 1.0) / 2 * n).round().clip(
-            min=0, max=n-1).astype(np.int)
+            min=0, max=n-1).astype(int)
         self.is_numerical = True
 
     def denumericalize(self, n=256):
@@ -187,13 +187,13 @@ class Extrude(object):
         assert -2.0 <= self.extent_one <= 2.0 and -2.0 <= self.extent_two <= 2.0
         self.profile.numericalize(n)
         self.sketch_plane.numericalize(n)
-        self.extent_one = ((self.extent_one + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(np.int) 
-        self.extent_two = ((self.extent_two + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(np.int) 
+        self.extent_one = ((self.extent_one + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(int) 
+        self.extent_two = ((self.extent_two + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(int) 
         self.operation = int(self.operation)
         self.extent_type = int(self.extent_type)
 
-        self.sketch_pos = ((self.sketch_pos + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(np.int) 
-        self.sketch_size = (self.sketch_size / 2 * n).round().clip(min=0, max=n-1).astype(np.int) 
+        self.sketch_pos = ((self.sketch_pos + 1.0) / 2 * n).round().clip(min=0, max=n-1).astype(int) 
+        self.sketch_size = (self.sketch_size / 2 * n).round().clip(min=0, max=n-1).astype(int) 
 
     def denumericalize(self, n=256):
         """de-quantize the representation."""
@@ -307,7 +307,7 @@ class CADSequence(object):
             # random transform sketch
             scale = random.uniform(0.8, 1.2)
             item.profile.transform(-np.array([128, 128]), scale)
-            translate = np.array([random.randint(-5, 5), random.randint(-5, 5)], dtype=np.int) + 128
+            translate = np.array([random.randint(-5, 5), random.randint(-5, 5)], dtype=int) + 128
             item.profile.transform(translate, 1)
 
             # random transform and scale extrusion

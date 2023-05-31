@@ -37,4 +37,4 @@ MAX_N_EXT = 10 # maximum number of extrusion
 MAX_N_LOOPS = 6 # maximum number of loops per sketch
 MAX_N_CURVES = 15 # maximum number of curves per loop
 MAX_TOTAL_LEN = 60 # maximum cad sequence length
-ARGS_DIM = 256
+ARGS_DIM = 256  # 2^8 i.e. 8-bit quantized values

@@ -136,8 +136,8 @@ class Line(CurveBase):
         self.start_point, self.end_point = self.end_point, self.start_point
 
     def numericalize(self, n=256):
-        self.start_point = self.start_point.round().clip(min=0, max=n-1).astype(np.int)
-        self.end_point = self.end_point.round().clip(min=0, max=n-1).astype(np.int)
+        self.start_point = self.start_point.round().clip(min=0, max=n-1).astype(int)
+        self.end_point = self.end_point.round().clip(min=0, max=n-1).astype(int)
 
     def to_vector(self):
         vec = [LINE_IDX, self.end_point[0], self.end_point[1]]
@@ -293,13 +293,13 @@ class Arc(CurveBase):
         self.start_point, self.end_point = self.end_point, self.start_point
 
     def numericalize(self, n=256):
-        self.start_point = self.start_point.round().clip(min=0, max=n-1).astype(np.int)
-        self.mid_point = self.mid_point.round().clip(min=0, max=n-1).astype(np.int)
-        self.end_point = self.end_point.round().clip(min=0, max=n-1).astype(np.int)
-        self.center = self.center.round().clip(min=0, max=n-1).astype(np.int)
+        self.start_point = self.start_point.round().clip(min=0, max=n-1).astype(int)
+        self.mid_point = self.mid_point.round().clip(min=0, max=n-1).astype(int)
+        self.end_point = self.end_point.round().clip(min=0, max=n-1).astype(int)
+        self.center = self.center.round().clip(min=0, max=n-1).astype(int)
         tmp = np.array([self.start_angle, self.end_angle])
         self.start_angle, self.end_angle = (tmp / (2 * np.pi) * n).round().clip(
-                                            min=0, max=n-1).astype(np.int)
+                                            min=0, max=n-1).astype(int)
 
     def to_vector(self):
         sweep_angle = max(abs(self.start_angle - self.end_angle), 1)
@@ -400,8 +400,8 @@ class Circle(CurveBase):
         pass
 
     def numericalize(self, n=256):
-        self.center = self.center.round().clip(min=0, max=n-1).astype(np.int)
-        self.radius = np.round(self.radius).clip(min=1, max=n-1).astype(np.int)
+        self.center = self.center.round().clip(min=0, max=n-1).astype(int)
+        self.radius = np.round(self.radius).clip(min=1, max=n-1).astype(int)
 
     def to_vector(self):
         vec = [CIRCLE_IDX, self.center[0], self.center[1], PAD_VAL, PAD_VAL, self.radius]
