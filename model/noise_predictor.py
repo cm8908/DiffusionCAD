@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import math
 from .nn import SiLU, timestep_embedding
+from einops.layers.torch import Rearrange
 
 
 class TransformerEncoder(nn.Module):
@@ -31,9 +32,13 @@ class Norm(nn.Module):
     def __init__(self, norm_type: str, h_dim):
         super().__init__()
         self.norm = {
-            'layernorm': nn.LayerNorm,
-            'batchnorm': nn.BatchNorm1d
-        }[norm_type](h_dim)
+            'layernorm': nn.LayerNorm(h_dim),
+            'batchnorm': nn.Sequential(
+                Rearrange('n l z -> n z l'),
+                nn.BatchNorm1d(h_dim),
+                Rearrange('n z l -> n l z')
+            )
+        }[norm_type]
     def forward(self, x):
         return self.norm(x)
         
