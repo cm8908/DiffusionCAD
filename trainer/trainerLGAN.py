@@ -73,7 +73,10 @@ class TrainerLatentWGAN(BaseTrainer):
         self.clock.restore_checkpoint(checkpoint['clock'])
 
     def calc_gradient_penalty(self, netD, real_data, fake_data):
-        alpha = torch.rand(self.batch_size, 1)
+        seq_len = real_data.size(1)
+        alpha = torch.rand(self.batch_size, seq_len)
+        if seq_len > 1:
+            alpha.unsqueeze_(2)
         alpha = alpha.expand(real_data.size())
         alpha = alpha.cuda() # if use_cuda else alpha
 
@@ -123,7 +126,11 @@ class TrainerLatentWGAN(BaseTrainer):
                 D_real.backward(mone)
 
                 # train with fake
-                noise = torch.randn(self.batch_size, self.n_dim)
+                noise = torch.randn(self.batch_size, self.n_dim)  # (N, noise)
+                if len(real_data.shape) == 3:
+                    seq_len = real_data.size(1)
+                    # noise = noise.unsqueeze(1).repeat(1, seq_len, 1)  # (N, S, noise)
+                    noise = torch.randn(self.batch_size, seq_len, self.n_dim)
                 noise = noise.cuda()
                 fake = self.netG(noise).detach()
                 inputv = fake
