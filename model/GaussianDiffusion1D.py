@@ -14,10 +14,8 @@ class GaussianDiffusion1D(nn.Module):
         model,
         cfg,
         *,
-        sampling_timesteps = None,
         objective = 'pred_noise',
-        ddim_sampling_eta = 0.,
-        auto_normalize = True
+        ddim_sampling_eta = 0.
     ):
         super().__init__()
         self.model = model
@@ -48,7 +46,7 @@ class GaussianDiffusion1D(nn.Module):
 
         # sampling related parameters
 
-        self.sampling_timesteps = default(sampling_timesteps, timesteps) # default num sampling timesteps to number of timesteps at training
+        self.sampling_timesteps = default(cfg.sampling_timesteps, timesteps) # default num sampling timesteps to number of timesteps at training
 
         assert self.sampling_timesteps <= timesteps
         self.is_ddim_sampling = self.sampling_timesteps < timesteps
@@ -99,8 +97,8 @@ class GaussianDiffusion1D(nn.Module):
 
         # whether to autonormalize
 
-        self.normalize = normalize_to_neg_one_to_one if auto_normalize else identity
-        self.unnormalize = unnormalize_to_zero_to_one if auto_normalize else identity
+        self.normalize = normalize_to_neg_one_to_one if cfg.auto_normalize else identity
+        self.unnormalize = unnormalize_to_zero_to_one if cfg.auto_normalize else identity
 
     def predict_start_from_noise(self, x_t, t, noise):
         return (
@@ -325,12 +323,12 @@ class GaussianDiffusion1D(nn.Module):
     def forward(self, img, *args, **kwargs):
         device, seq_length = img.device, self.seq_length
         if len(img.shape) == 3:
-            b, c, n = img.shape
+            b, n, c = img.shape
         elif len(img.shape) == 2:
             b, c = img.shape
             n = 1
             
-        assert n == seq_length, f'seq length must be {seq_length}'
+        assert n == seq_length, f'seq length must be {seq_length} but got {n}'
         t = torch.randint(0, self.num_timesteps, (b,), device=device).long()
 
         img = self.normalize(img)
