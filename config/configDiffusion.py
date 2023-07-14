@@ -23,8 +23,9 @@ class ConfigDiffusion:
             self.seq_len = 1
         
         # set as attributes
+        self.__dict__.update(args.__dict__)
         print("----Experiment Configuration-----")
-        for k, v in args.__dict__.items():
+        for k, v in self.__dict__.items():
             print("{0:20}".format(k), v)
             self.__setattr__(k, v)
 
@@ -58,6 +59,9 @@ class ConfigDiffusion:
         if not args.test:
             with open('{}/config.txt'.format(self.exp_dir), 'w') as f:
                 json.dump(self.__dict__, f, indent=2)
+        
+        if input('[IMPORTANT]Have you checked the model size and hyperparameters? ([y]/n)').lower() == 'n':
+            exit()
 
     def set_configuration(self):
         # self.model_type = 'transformer_encoder'  # ['transformer_encoder', 'mlp']
@@ -112,8 +116,11 @@ class ConfigDiffusion:
 
         parser.add_argument('--seq_len', type=int, default=1, help="length of z variable")
         parser.add_argument('--timesteps', type=int, default=2000, help='diffusion time steps')
+        parser.add_argument('--sampling_timesteps', type=int, default=None, help='sampling time steps; if lt timesteps, ddim sample is used')
         parser.add_argument('--loss_type', choices=['l1', 'l2'], default='l1', help='DDPM loss type')
         parser.add_argument('--beta_schedule', choices=['linear', 'cosine'], default='cosine', help='beta scheduling')
+
+        parser.add_argument('--auto_normalize', action='store_true')
 
         args = parser.parse_args()
         return parser, args
